@@ -155,9 +155,20 @@ function GetAddresses()
         return
     end
 
-    local message = serializer.unserialize(message_raw)
+    local addresses = serializer.unserialize(message_raw)
 
-    print(message_raw)
+    for k, v in pairs(addresses) do
+        print(k)
+        if string.len(v[1]) ~= 0 then
+            print("\tMW: " .. v[1])
+        end
+        if string.len(v[2]) ~= 0 then
+            print("\tPG: " .. v[2])
+        end
+        if string.len(v[3]) ~= 0 then
+            print("\tUN: " .. v[3])
+        end
+    end
 
     modem.close(AddressPort)
 end
