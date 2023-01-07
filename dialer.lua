@@ -174,13 +174,22 @@ function GetAddresses()
 end
 
 function AddAddress() 
+    io.write("Enter name: ")
+    local name = io.read()
+    io.write("Enter MW address: ")
+    local mw = io.read()
+    io.write("Enter PG address: ")
+    local pg = io.read()
+    io.write("Enter UN address: ")
+    local un = io.read()
+
     local add_address = {
         ["type"] = "add_address",
-        ["name"] = "home",
+        ["name"] = name,
         ["address"] = {
-            ";zax1]4l",
-            "",
-            ""
+            mw,
+            pg,
+            un
         }
     }
 
