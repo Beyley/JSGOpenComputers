@@ -16,6 +16,8 @@ end
 DialerPort = 425
 -- Port the GDO works on 
 GdoPort = 428
+-- Port the address storage works on
+AddressPort = 431
 
 -- Open ports on the modem
 modem.open(DialerPort)
@@ -136,10 +138,63 @@ function Dialer()
     modem.broadcast(DialerPort, serialized_address)
 end
 
+function GetAddresses()
+    local get_addresses = {
+        ["type"] = "get_addresses"
+    }
+
+    modem.open(AddressPort)
+
+    modem.broadcast(AddressPort, serializer.serialize(get_addresses))
+
+    -- Pull the recieved message with a 5s timout
+    local _, _, _, _, _, message_raw = event.pull(5, "modem_message")
+
+    if message_raw == nil then
+        print("No response recieved!")
+        return
+    end
+
+    local message = serializer.unserialize(message_raw)
+
+    print(message_raw)
+
+    modem.close(AddressPort)
+end
+
+function AddAddress() 
+    local add_address = {
+        ["type"] = "add_address",
+        ["name"] = "home",
+        ["address"] = {
+            ";zax1]4l",
+            "",
+            ""
+        }
+    }
+
+    modem.broadcast(AddressPort, serializer.serialize(add_address))
+end
+
+function Addresses()
+    io.write("[G]et Addresses [A]dd address [C]ancel?")
+    local input = io.read()
+
+    input = string.sub(string.lower(input), 1, 1)
+
+    if input == 'g' then 
+        GetAddresses()
+    elseif input == 'a' then
+        AddAddress()
+    elseif input == 'c' then
+        return
+    end
+end
+
 Run = true
 
 function PrintInterface()
-    io.write("[G]DO [D]ialer [Q]uit?")
+    io.write("[G]DO [D]ialer [A]ddresses [Q]uit?")
     local input = io.read()
 
     input = string.sub(string.lower(input), 1, 1)
@@ -148,6 +203,8 @@ function PrintInterface()
         Gdo()
     elseif input == 'd' then
         Dialer()
+    elseif input == 'a' then
+        Addresses()
     elseif input == 'q' then
         print("Quitting...")
         Run = false    
