@@ -19,6 +19,10 @@ GdoPort = 428
 -- Port the address storage works on
 AddressPort = 431
 
+-- Try 5 times to recive a response from the iris computer
+local attempts = 5
+local timeout = 5
+
 -- Open ports on the modem
 modem.open(DialerPort)
 modem.open(GdoPort)
@@ -35,10 +39,6 @@ function Gdo()
         print("Failed to send IDC")
         Close()
     end
-    
-    -- Try 5 times to recive a response from the iris computer
-    local attempts = 5
-    local timeout = 5
 
     for i = 1, attempts do
         local _, _, _, _, _, message_raw = event.pull(timeout, "modem_message")
@@ -103,6 +103,44 @@ function Dialer()
     -- TODO: add a way to get the current gate type from the dialing computer
     local gate_type = "MW"
 
+    if modem.broadcast(DialerPort, "SGWAKEUP") == false then
+        print("Failed to send wakeup signal! You may not have a modem!")
+        return
+    end
+
+    for i = 1, attempts do
+        local _, _, _, _, _, message_raw = event.pull(timeout, "modem_message")
+
+        if message_raw == nil then
+            io.write(tostring(i))
+            goto continue
+        end
+
+        -- deserialize the message
+        local message = serializer.unserialize(tostring(message_raw))
+
+        print(message)
+
+        if message == nil or message[1] ~= "CONNECTED" then
+            print("Invalid response recieved [0]")
+            goto continue
+        end
+
+        if message[2] == "MILKYWAY" then
+            gate_type = "MW"
+            goto wakeup_response_end
+        elseif message[2] == "PEGASUS" then
+            gate_type = "PG"
+            goto wakeup_response_end
+        elseif message[2] == "UNIVERSE" then
+            gate_type = "UN"
+            goto wakeup_response_end
+        end
+
+        ::continue::
+    end
+    ::wakeup_response_end::
+
     local conversion = PrintConversion(gate_type)
 
     -- TODO: add a local database of gate addresses
@@ -125,8 +163,8 @@ function Dialer()
 
     table.insert(converted_address, conversion["q"])
 
-    if #converted_address < 6 or #converted_address > 8 then
-        print("Address is too short! (" .. string.len(address) .. ")")
+    if #converted_address < 7 or #converted_address > 9 then
+        print("Address is the wrong size! (" .. string.len(address) .. ")")
         return
     end
 
